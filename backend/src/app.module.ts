@@ -3,10 +3,10 @@ import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { OrdersModule } from './orders/orders.module.js';
 import { ProductsModule } from './products/products.module.js';
-import { MessagingModule } from './messaging/messaging.module.js';
+import { RabbitMQModule } from './rabbitmq/rabbitmq.module.js';
 
 @Module({
-  imports: [OrdersModule, ProductsModule, MessagingModule],
+  imports: [OrdersModule, ProductsModule, RabbitMQModule],
   controllers: [AppController],
   providers: [AppService],
 })

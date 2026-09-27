@@ -1,18 +1,20 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Order, OrderStatus } from './entities/order.entity.js';
 import { ProductsService } from '../products/products.service.js';
 import { CreateOrderDto } from './dto/create-order.dto.js';
 import { OrderItem } from './entities/order-items.entity.js';
 import { randomUUID } from 'node:crypto';
 import { Product } from '../products/entities/product.entity.js';
+import { RabbitMQService } from '../rabbitmq/rabbitmq.service.js';
+import { OrderCreatedEvent } from './events/order-created.event.js';
+import { RabbitMQEvent } from '../rabbitmq/rabbitmq-event.enum.js';
 
 @Injectable()
 export class OrdersService {
-  constructor(private readonly productService: ProductsService) {}
+  constructor(
+    private readonly productService: ProductsService,
+    private readonly rabbitMQService: RabbitMQService,
+  ) {}
 
   // Currently store in memory
   private orders: Order[] = [];
@@ -36,13 +38,6 @@ export class OrdersService {
       // Validation
       if (product === undefined) {
         throw new NotFoundException(`Product ${item.productId} not found`);
-      }
-
-      //TODO: Define where to reduce the stock
-      if (product.stock < item.quantity) {
-        throw new BadRequestException(
-          `Not enough stock for product ${product.name}`,
-        );
       }
 
       // push to orderItem
@@ -69,6 +64,21 @@ export class OrdersService {
     };
 
     this.orders.push(order);
+
+    // Create rabbitMQ event
+    const event: OrderCreatedEvent = {
+      orderId: order.id,
+      customerEmail: dto.customerEmail,
+      items: order.items.map((item) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+      })),
+      total: order.total,
+    };
+
+    this.rabbitMQService.publish(RabbitMQEvent.ORDER_CREATED, event);
+
     return order;
   }
 
@@ -76,13 +86,29 @@ export class OrdersService {
     return this.orders;
   }
 
-  public findOne(id: string): Order | undefined {
+  public findOne(id: string): Order {
     const order = this.orders.find((order) => order.id === id);
 
     if (!order) {
       throw new NotFoundException(`Order ${id} not found`);
     }
 
+    return order;
+  }
+
+  public updateStatus(id: string, status: OrderStatus) {
+    this.findOne(id).status = status;
+  }
+
+  public complete(orderId: string): Order {
+    const order = this.findOne(orderId);
+    order.status = OrderStatus.COMPLETED;
+    return order;
+  }
+
+  public fail(orderId: string): Order {
+    const order = this.findOne(orderId);
+    order.status = OrderStatus.FAILED;
     return order;
   }
 }
