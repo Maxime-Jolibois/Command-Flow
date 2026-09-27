@@ -25,8 +25,14 @@ export class ProductsService {
     return this.products;
   }
 
-  public findOne(id: string): Product | undefined {
-    return this.products.find((product) => product.id === id);
+  public findOne(id: string): Product {
+    const product = this.products.find((product) => product.id === id);
+
+    if (!product) {
+      throw new NotFoundException(`Product ${id} not found`);
+    }
+
+    return product;
   }
 
   public findByIds(ids: string[]): Product[] {
@@ -54,6 +60,13 @@ export class ProductsService {
     if (index != -1) {
       this.products.splice(index, 1);
     }
+  }
+
+  public checkStock(id: string, quantity: number): boolean {
+    //TODO: Changing with PostgresSQL => lock quantity for concurrency
+    const product = this.findOne(id);
+    console.log(product.id, product.stock, quantity);
+    return product.stock >= quantity;
   }
 
   private seed(): void {
