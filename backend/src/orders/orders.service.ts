@@ -77,6 +77,12 @@ export class OrdersService {
   }
 
   public findOne(id: string): Order | undefined {
-    return this.orders.find((order) => order.id === id);
+    const order = this.orders.find((order) => order.id === id);
+
+    if (!order) {
+      throw new NotFoundException(`Order ${id} not found`);
+    }
+
+    return order;
   }
 }
