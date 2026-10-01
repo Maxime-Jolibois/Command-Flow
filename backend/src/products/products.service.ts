@@ -1,94 +1,59 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto.js';
 import { UpdateProductDto } from './dto/update-product.dto.js';
-import { Product } from './entities/product.entity.js';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { PrismaProduct } from './products.types.js';
 import { randomUUID } from 'node:crypto';
 
 @Injectable()
 export class ProductsService {
-  // Currently create in memory
-  private products: Product[] = [];
+  constructor(private readonly prismaService: PrismaService) {}
 
-  constructor() {
-    this.seed();
-  }
-
-  create(createProductDto: CreateProductDto) {
-    this.products.push({
-      ...createProductDto,
+  public async create(
+    createProductDto: CreateProductDto,
+  ): Promise<PrismaProduct> {
+    return this.prismaService.db.orm.public.Product.create({
       id: randomUUID(),
-      createAt: new Date(),
+      ...createProductDto,
     });
   }
 
-  public findAll() {
-    return this.products;
+  public async findAll(): Promise<PrismaProduct[]> {
+    return this.prismaService.db.orm.public.Product.all();
   }
 
-  public findOne(id: string): Product {
-    const product = this.products.find((product) => product.id === id);
-
-    if (!product) {
-      throw new NotFoundException(`Product ${id} not found`);
-    }
-
-    return product;
+  public async findOne(id: string): Promise<PrismaProduct | null> {
+    return this.prismaService.db.orm.public.Product.first({ id: id });
   }
 
-  public findByIds(ids: string[]): Product[] {
-    return this.products.filter((p) => ids.includes(p.id));
+  public async findByIds(ids: string[]): Promise<PrismaProduct[]> {
+    return this.prismaService.db.orm.public.Product.where((p) =>
+      p.id.in(ids),
+    ).all();
   }
 
-  public update(id: string, updateProductDto: UpdateProductDto): Product {
-    const index: number = this.products.findIndex((p) => p.id === id);
-
-    if (index === -1) {
-      throw new NotFoundException(`Product ${id} not found`);
-    }
-
-    this.products[index] = {
-      ...this.products[index],
-      ...updateProductDto,
-    };
-
-    return this.products[index];
+  public update(
+    id: string,
+    updateProductDto: UpdateProductDto,
+  ): Promise<PrismaProduct | null> {
+    return this.prismaService.db.orm.public.Product.where({ id: id }).update(
+      updateProductDto,
+    );
   }
 
-  public remove(id: string) {
-    const index: number = this.products.findIndex((p) => p.id === id);
-
-    if (index != -1) {
-      this.products.splice(index, 1);
-    }
+  public async delete(id: string): Promise<PrismaProduct | null> {
+    return this.prismaService.db.orm.public.Product.where({ id: id }).delete();
   }
 
-  public checkStock(id: string, quantity: number): boolean {
-    //TODO: Changing with PostgresSQL => lock quantity for concurrency
-    const product = this.findOne(id);
-    console.log(product.id, product.stock, quantity);
-    return product.stock >= quantity;
-  }
+  public async reserveStock(id: string, quantity: number): Promise<boolean> {
+    const plan = this.prismaService.db.sql.public.Product.update((p, fns) => ({
+      stock: fns.raw`${p.stock} - ${quantity}`.returns('pg/int4@1'),
+    }))
+      .where((p, fns) => fns.and(fns.eq(p.id, id), fns.gte(p.stock, quantity)))
+      .build();
 
-  private seed(): void {
-    this.create({
-      name: 'Clavier mécanique',
-      description: 'Clavier mécanique RGB',
-      price: 89.99,
-      stock: 10,
-    });
+    const result = await this.prismaService.db.runtime().execute(plan);
 
-    this.create({
-      name: 'Souris sans fil',
-      description: 'Souris ergonomique sans fil',
-      price: 49.99,
-      stock: 25,
-    });
-
-    this.create({
-      name: 'Écran 27 pouces',
-      description: 'Écran 27 pouces 144 Hz',
-      price: 249.99,
-      stock: 5,
-    });
+    return result.affectedRows === 1;
   }
 }
