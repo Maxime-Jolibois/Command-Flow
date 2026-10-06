@@ -3,6 +3,7 @@ export interface OrderCreatedEvent {
   customerEmail: string;
   items: {
     productId: string;
+    productName: string;
     quantity: number;
     unitPrice: number;
   }[];

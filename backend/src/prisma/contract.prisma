@@ -1,0 +1,32 @@
+// use prisma-8
+
+model Product {
+  id          String @id
+  name        String
+  description String
+  price       Float
+  stock       Int
+  createdAt   TimestamptzString @default(now())
+}
+
+model Order {
+  id String @id
+  status String
+  customerName String
+  customerEmail String
+  totalPrice Float
+  items OrderItem[]
+  createdAt TimestamptzString @default(now())
+}
+
+model OrderItem {
+  id String @id
+  orderId String
+  productId String
+  productName String
+  quantity Int
+  unitPrice Float
+  createdAt TimestamptzString @default(now())
+
+  order Order @relation(fields: [orderId], references: [id])
+}
