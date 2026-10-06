@@ -75,9 +75,21 @@ export class OrdersService {
       total: order.totalPrice,
     };
 
+    // DB Transaction
+    const createdOrder = await this.prismaService.db.transaction(async (tx) => {
+      const createdOrder = await tx.orm.public.Order.create(order);
+
+      for (const item of orderItems) {
+        await tx.orm.public.OrderItem.create(item);
+      }
+
+      return createdOrder;
+    });
+
+    // End of transaction -> RabbitMQ
     this.rabbitMQService.publish(RabbitMQEvent.ORDER_CREATED, event);
 
-    return order;
+    return createdOrder;
   }
 
   public async findAll(): Promise<PrismaOrder[]> {

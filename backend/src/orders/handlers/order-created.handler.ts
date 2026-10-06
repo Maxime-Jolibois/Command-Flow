@@ -15,30 +15,30 @@ export class OrderCreateHandler {
   ) {}
 
   @EventPattern(RabbitMQEvent.ORDER_CREATED)
-  public handlerOrderCreated(event: OrderCreatedEvent) {
-    console.log('Order created: ', event);
+  public async handlerOrderCreated(event: OrderCreatedEvent) {
+    console.log('Order created event: ', event);
 
     for (const item of event.items) {
-      const hasStock = this.productsService.checkStock(
+      const isReserved = await this.productsService.reserveStock(
         item.productId,
         item.quantity,
       );
 
-      if (hasStock === false) {
-        this.ordersService.fail(event.orderId);
+      if (isReserved === false) {
+        await this.ordersService.fail(event.orderId);
 
         this.rabbitMQService.publish(RabbitMQEvent.ORDER_FAILED, {
           orderId: event.orderId,
         });
         return;
       }
-
-      // Success
-      this.ordersService.complete(event.orderId);
-
-      this.rabbitMQService.publish(RabbitMQEvent.ORDER_COMPLETED, {
-        orderId: event.orderId,
-      });
     }
+
+    // Success
+    await this.ordersService.complete(event.orderId);
+
+    this.rabbitMQService.publish(RabbitMQEvent.ORDER_COMPLETED, {
+      orderId: event.orderId,
+    });
   }
 }
