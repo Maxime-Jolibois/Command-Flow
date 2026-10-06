@@ -34,7 +34,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'bef2ea2b78c859c68406c858963ec97cdc1e12252258aae53fbee38abfa7615b'>;
+  StorageHashBase<'97568c50a9ba3d38289c3c4b3ca8f4dd79eecc35f3b5f6a40e9d8a8626e807bd'>;
 export type ExecutionHash = ExecutionHashBase<string>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
@@ -250,11 +250,8 @@ type DefaultLiteralValue<CodecId extends string, Encoded> = CodecId extends keyo
 export type FieldOutputTypes = {
   readonly public: {
     readonly Order: {
-      readonly customerEmail: CodecTypes['pg/text@1']['output'];
-      readonly customerName: CodecTypes['pg/text@1']['output'];
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly status: CodecTypes['pg/text@1']['output'];
-      readonly totalPrice: CodecTypes['pg/float8@1']['output'];
     };
     readonly OrderItem: {
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
@@ -278,11 +275,8 @@ export type FieldOutputTypes = {
 export type FieldInputTypes = {
   readonly public: {
     readonly Order: {
-      readonly customerEmail: CodecTypes['pg/text@1']['input'];
-      readonly customerName: CodecTypes['pg/text@1']['input'];
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly status: CodecTypes['pg/text@1']['input'];
-      readonly totalPrice: CodecTypes['pg/float8@1']['input'];
     };
     readonly OrderItem: {
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
@@ -306,11 +300,8 @@ export type FieldInputTypes = {
 export type StorageColumnTypes = {
   readonly public: {
     readonly Order: {
-      readonly customerEmail: CodecTypes['pg/text@1']['output'];
-      readonly customerName: CodecTypes['pg/text@1']['output'];
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly status: CodecTypes['pg/text@1']['output'];
-      readonly totalPrice: CodecTypes['pg/float8@1']['output'];
     };
     readonly OrderItem: {
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
@@ -334,11 +325,8 @@ export type StorageColumnTypes = {
 export type StorageColumnInputTypes = {
   readonly public: {
     readonly Order: {
-      readonly customerEmail: CodecTypes['pg/text@1']['input'];
-      readonly customerName: CodecTypes['pg/text@1']['input'];
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly status: CodecTypes['pg/text@1']['input'];
-      readonly totalPrice: CodecTypes['pg/float8@1']['input'];
     };
     readonly OrderItem: {
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
@@ -362,11 +350,8 @@ export type StorageColumnInputTypes = {
 
 export namespace Models {
   export type public_Order = {
-    customerEmail: CodecTypes['pg/text@1']['output'];
-    customerName: CodecTypes['pg/text@1']['output'];
     id: CodecTypes['pg/text@1']['output'];
     status: CodecTypes['pg/text@1']['output'];
-    totalPrice: CodecTypes['pg/float8@1']['output'];
     items: public_OrderItem[];
     readonly [RelationKeys]?: 'items';
   };
@@ -420,16 +405,6 @@ type ContractBase = Omit<
           readonly table: {
             readonly Order: {
               columns: {
-                readonly customerEmail: {
-                  readonly nativeType: 'text';
-                  readonly codecId: 'pg/text@1';
-                  readonly nullable: false;
-                };
-                readonly customerName: {
-                  readonly nativeType: 'text';
-                  readonly codecId: 'pg/text@1';
-                  readonly nullable: false;
-                };
                 readonly id: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
@@ -438,11 +413,6 @@ type ContractBase = Omit<
                 readonly status: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
-                  readonly nullable: false;
-                };
-                readonly totalPrice: {
-                  readonly nativeType: 'float8';
-                  readonly codecId: 'pg/float8@1';
                   readonly nullable: false;
                 };
               };
@@ -575,14 +545,6 @@ type ContractBase = Omit<
         readonly models: {
           readonly Order: {
             readonly fields: {
-              readonly customerEmail: {
-                readonly nullable: false;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
-              };
-              readonly customerName: {
-                readonly nullable: false;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
-              };
               readonly id: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
@@ -590,10 +552,6 @@ type ContractBase = Omit<
               readonly status: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
-              };
-              readonly totalPrice: {
-                readonly nullable: false;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/float8@1' };
               };
             };
             readonly relations: {
@@ -613,11 +571,8 @@ type ContractBase = Omit<
               readonly table: 'Order';
               readonly namespaceId: 'public';
               readonly fields: {
-                readonly customerEmail: { readonly column: 'customerEmail' };
-                readonly customerName: { readonly column: 'customerName' };
                 readonly id: { readonly column: 'id' };
                 readonly status: { readonly column: 'status' };
-                readonly totalPrice: { readonly column: 'totalPrice' };
               };
             };
           };

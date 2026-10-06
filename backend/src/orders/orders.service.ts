@@ -1,28 +1,27 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Order, OrderStatus } from './entities/order.entity.js';
+import { OrderStatus } from './entities/order.entity.js';
 import { ProductsService } from '../products/products.service.js';
 import { CreateOrderDto } from './dto/create-order.dto.js';
-import { OrderItem } from './entities/order-items.entity.js';
 import { randomUUID } from 'node:crypto';
-import { Product } from '../products/entities/product.entity.js';
 import { RabbitMQService } from '../rabbitmq/rabbitmq.service.js';
 import { OrderCreatedEvent } from './events/order-created.event.js';
 import { RabbitMQEvent } from '../rabbitmq/rabbitmq-event.enum.js';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { PrismaOrder, PrismaOrderItem } from './orders.types.js';
+import { PrismaProduct } from '../products/products.types.js';
 
 @Injectable()
 export class OrdersService {
   constructor(
     private readonly productService: ProductsService,
+    private readonly prismaService: PrismaService,
     private readonly rabbitMQService: RabbitMQService,
   ) {}
 
-  // Currently store in memory
-  private orders: Order[] = [];
-
-  public create(dto: CreateOrderDto): Order {
+  public async create(dto: CreateOrderDto): Promise<PrismaOrder | null> {
     // Get product from order items
-    const products: Product[] = this.productService.findByIds(
-      dto.items.map((i) => i.productId),
+    const products: PrismaProduct[] = await this.productService.findByIds(
+      dto.items.map((item) => item.productId),
     );
 
     // Create Map for efficiency
@@ -30,7 +29,8 @@ export class OrdersService {
       products.map((product) => [product.id, product]),
     );
 
-    const orderItems: OrderItem[] = [];
+    const orderItems: Omit<PrismaOrderItem, 'createdAt'>[] = [];
+    const orderId = randomUUID();
 
     for (const item of dto.items) {
       const product = productsById.get(item.productId);
@@ -42,39 +42,37 @@ export class OrdersService {
 
       // push to orderItem
       orderItems.push({
+        id: randomUUID(),
         productId: product.id,
+        orderId: orderId,
         productName: product.name,
         quantity: item.quantity,
         unitPrice: product.price,
       });
     }
 
-    // Create Order
-    const order: Order = {
-      id: randomUUID(),
+    const order: Omit<PrismaOrder, 'createdAt'> = {
+      id: orderId,
       customerName: dto.customerName,
       customerEmail: dto.customerEmail,
       status: OrderStatus.PENDING,
-      items: orderItems,
-      total: orderItems.reduce(
+      totalPrice: orderItems.reduce(
         (total, i) => total + i.unitPrice * i.quantity,
         0,
       ),
-      createdAt: new Date(),
     };
-
-    this.orders.push(order);
 
     // Create rabbitMQ event
     const event: OrderCreatedEvent = {
       orderId: order.id,
       customerEmail: dto.customerEmail,
-      items: order.items.map((item) => ({
+      items: orderItems.map((item) => ({
         productId: item.productId,
+        productName: item.productName,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
       })),
-      total: order.total,
+      total: order.totalPrice,
     };
 
     this.rabbitMQService.publish(RabbitMQEvent.ORDER_CREATED, event);
@@ -82,33 +80,28 @@ export class OrdersService {
     return order;
   }
 
-  public findAll(): Order[] {
-    return this.orders;
+  public async findAll(): Promise<PrismaOrder[]> {
+    return this.prismaService.db.orm.public.Order.all();
   }
 
-  public findOne(id: string): Order {
-    const order = this.orders.find((order) => order.id === id);
-
-    if (!order) {
-      throw new NotFoundException(`Order ${id} not found`);
-    }
-
-    return order;
+  public async findOne(id: string): Promise<PrismaOrder | null> {
+    return this.prismaService.db.orm.public.Order.first({ id });
   }
 
-  public updateStatus(id: string, status: OrderStatus) {
-    this.findOne(id).status = status;
+  public async updateStatus(
+    id: string,
+    status: OrderStatus,
+  ): Promise<PrismaOrder | null> {
+    return this.prismaService.db.orm.public.Order.where({ id }).update({
+      status: status,
+    });
   }
 
-  public complete(orderId: string): Order {
-    const order = this.findOne(orderId);
-    order.status = OrderStatus.COMPLETED;
-    return order;
+  public async complete(orderId: string): Promise<PrismaOrder | null> {
+    return this.updateStatus(orderId, OrderStatus.COMPLETED);
   }
 
-  public fail(orderId: string): Order {
-    const order = this.findOne(orderId);
-    order.status = OrderStatus.FAILED;
-    return order;
+  public async fail(orderId: string): Promise<PrismaOrder | null> {
+    return this.updateStatus(orderId, OrderStatus.FAILED);
   }
 }

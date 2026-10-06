@@ -6,9 +6,10 @@ import { RabbitMQModule } from '../rabbitmq/rabbitmq.module.js';
 import { OrderCreateHandler } from './handlers/order-created.handler.js';
 import { OrderCompletedHandler } from './handlers/order-completed.handle.js';
 import { OrderFailedHandler } from './handlers/order-failed.handle copy.js';
+import { PrismaModule } from '../prisma/prisma.module.js';
 
 @Module({
-  imports: [ProductsModule, RabbitMQModule],
+  imports: [ProductsModule, RabbitMQModule, PrismaModule],
   controllers: [
     OrdersController,
     OrderCreateHandler,
